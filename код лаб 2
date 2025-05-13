@@ -1,197 +1,125 @@
-#include <iostream>
-#include <vector>
-#include <cmath>
-using namespace std;
+        }
+        std::cout << "Копирующий конструктор matr " << num << " вызван." << std::endl;
+    }
 
-// Абстрактный класс Точка
-class Point {
-protected:
-    double x, y;
-public:
-    Point(double x = 0, double y = 0) : x(x), y(y) {}
-    
-    // Чисто виртуальные методы, делающие класс абстрактным
-    virtual void draw() = 0;
-    virtual void erase() = 0;
-    
-    void move(double dx, double dy) {
-        x += dx;
-        y += dy;
+    ~matr() {
+        for (int i = 0; i < rows; ++i) delete[] m[i];
+        delete[] m;
+        std::cout << "Деструктор matr " << num << " вызван." << std::endl;
     }
-    
-    virtual void rotate(double angle) = 0;
-    
-    virtual ~Point() {}
-    
-    double getX() const { return x; }
-    double getY() const { return y; }
-    
-    void setX(double newX) { x = newX; }
-    void setY(double newY) { y = newY; }
-};
 
-// Класс Линия
-class Line : public Point {
-protected:
-    double x2, y2;
-public:
-    Line(double x1, double y1, double x2, double y2) : Point(x1, y1), x2(x2), y2(y2) {}
-    
-    void draw() override {
-        cout << "Drawing line from (" << x << "," << y << ") to (" << x2 << "," << y2 << ")\n";
-    }
-    
-    void erase() override {
-        cout << "Erasing line from (" << x << "," << y << ") to (" << x2 << "," << y2 << ")\n";
-    }
-    
-    void rotate(double angle) override {
-        // Поворот первой точки относительно (0,0)
-        double newX = x * cos(angle) - y * sin(angle);
-        double newY = x * sin(angle) + y * cos(angle);
-        x = newX;
-        y = newY;
+    matr operator+(const matr& mat) const {
+        if (rows != mat.rows || cols != mat.cols)
+            throw std::invalid_argument("Размерности матриц не совпадают.");
         
-        // Поворот второй точки относительно (0,0)
-        newX = x2 * cos(angle) - y2 * sin(angle);
-        newY = x2 * sin(angle) + y2 * cos(angle);
-        x2 = newX;
-        y2 = newY;
+        matr result(rows, cols);
+        for (int i = 0; i < rows; ++i)
+            for (int j = 0; j < cols; ++j)
+                result.m[i][j] = m[i][j] + mat.m[i][j];
+
+        std::cout << "Сложение matr " << num << " с matr " << mat.num << " выполнено." << std::endl;
+        return result;
+    }
+
+    matr operator-(const matr& mat) const {
+        if (rows != mat.rows || cols != mat.cols)
+            throw std::invalid_argument("Размерности матриц не совпадают.");
+        
+        matr result(rows, cols);
+        for (int i = 0; i < rows; ++i)
+            for (int j = 0; j < cols; ++j)
+                result.m[i][j] = m[i][j] - mat.m[i][j];
+
+        std::cout << "Вычитание matr " << num << " из matr " << mat.num << " выполнено." << std::endl;
+        return result;
+    }
+
+    matr operator*(double k) const {
+        matr result(rows, cols);
+        for (int i = 0; i < rows; ++i)
+            for (int j = 0; j < cols; ++j)
+                result.m[i][j] = k * m[i][j];
+
+        std::cout << "Умножение matr " << num << " на скаляр " << k << " выполнено." << std::endl;
+        return result;
+    }
+
+    matr& operator=(const matr& mat) {
+        if (this == &mat) return *this;
+
+        for (int i = 0; i < rows; ++i) delete[] m[i];
+        delete[] m;
+
+        rows = mat.rows;
+        cols = mat.cols;
+
+        m = new double*[rows];
+        for (int i = 0; i < rows; ++i) {
+            m[i] = new double[cols];
+            std::copy(mat.m[i], mat.m[i] + cols, m[i]);
+        }
+
+        std::cout << "Присваивание matr " << num << " от matr " << mat.num << " выполнено." << std::endl;
+        
+        return *this;
+    }
+
+    double& operator()(int row, int col) {
+        if (row < 0 || row >= rows || col < 0 || col >= cols)
+            throw std::out_of_range("Индекс вне диапазона.");
+        return m[row][col];
+    }
+
+    const double& operator()(int row, int col) const {
+        if (row < 0 || row >= rows || col < 0 || col >= cols)
+            throw std::out_of_range("Индекс вне диапазона.");
+        return m[row][col];
+    }
+
+    void print() const {
+        std::cout << "matr " << num << ":" << std::endl;
+        for (int i = 0; i < rows; ++i) {
+            for (int j = 0; j < cols; ++j) {
+                std::cout << m[i][j] << (j < cols - 1 ? ", " : "");
+            }
+            std::cout << std::endl;
+        }
     }
     
-    void move(double dx, double dy) {
-        Point::move(dx, dy);
-        x2 += dx;
-        y2 += dy;
-    }
+    static int getCount() { return count; }
 };
 
-// Базовый класс для квадрата (виртуальное наследование)
-class SquareBase : virtual public Point {
-protected:
-    double side;
-public:
-    SquareBase(double x, double y, double side) : Point(x, y), side(side) {}
-    
-    void draw() override {
-        cout << "Drawing square at (" << x << "," << y << ") with side " << side << "\n";
-    }
-    
-    void erase() override {
-        cout << "Erasing square at (" << x << "," << y << ") with side " << side << "\n";
-    }
-    
-    void rotate(double angle) override {
-        cout << "Rotating square by " << angle << " radians\n";
-    }
-    
-    double getSide() const { return side; }
-};
-
-// Класс Квадрат
-class Square : public SquareBase {
-public:
-    Square(double x, double y, double side) : SquareBase(x, y, side) {}
-};
-
-// Класс Ромб
-class Rhombus : public SquareBase {
-protected:
-    double angle;
-public:
-    Rhombus(double x, double y, double side, double angle) 
-        : SquareBase(x, y, side), angle(angle) {}
-    
-    void draw() override {
-        cout << "Drawing rhombus at (" << x << "," << y << ") with side " << side 
-             << " and angle " << angle << "\n";
-    }
-    
-    void erase() override {
-        cout << "Erasing rhombus at (" << x << "," << y << ") with side " << side 
-             << " and angle " << angle << "\n";
-    }
-};
-
-// Класс Прямоугольник
-class Rectangle : public SquareBase {
-protected:
-    double height;
-public:
-    Rectangle(double x, double y, double width, double height) 
-        : SquareBase(x, y, width), height(height) {}
-    
-    void draw() override {
-        cout << "Drawing rectangle at (" << x << "," << y << ") with width " << side 
-             << " and height " << height << "\n";
-    }
-    
-    void erase() override {
-        cout << "Erasing rectangle at (" << x << "," << y << ") with width " << side 
-             << " and height " << height << "\n";
-    }
-};
-
-// Класс Параллелограмм (наследуется от SquareBase виртуально)
-class Parallelogram : virtual public SquareBase {
-protected:
-    double height;
-    double angle;
-public:
-    Parallelogram(double x, double y, double side, double height, double angle)
-: SquareBase(x, y, side), height(height), angle(angle) {}
-    
-    void draw() override {
-        cout << "Drawing parallelogram at (" << x << "," << y << ") with side " << side 
-             << ", height " << height << " and angle " << angle << "\n";
-    }
-    
-    void erase() override {
-        cout << "Erasing parallelogram at (" << x << "," << y << ") with side " << side 
-             << ", height " << height << " and angle " << angle << "\n";
-    }
-    
-    void rotate(double angle) override {
-        this->angle += angle;
-        cout << "Rotated parallelogram by " << angle << " radians. New angle: " << this->angle << "\n";
-    }
-};
-
-// Функция для демонстрации позднего связывания
-void demonstrateLateBinding(Point* obj) {
-    obj->draw();
-    obj->rotate(1.57); // Поворот на ~90 градусов
-    obj->move(10, 10);
-    obj->draw();
-    obj->erase();
-}
+int matr::count = 0;
 
 int main() {
-    // Создание объектов
-    Line line(0, 0, 10, 10);
-    Square square(5, 5, 10);
-    Rhombus rhombus(3, 3, 8, 0.78);
-    Rectangle rectangle(2, 2, 6, 4);
-    Parallelogram parallelogram(1, 1, 5, 3, 0.52);
-    
-    // Вектор указателей на базовый класс
-    vector<Point*> shapes;
-    shapes.push_back(&line);
-    shapes.push_back(&square);
-    shapes.push_back(&rhombus);
-    shapes.push_back(&rectangle);
-    shapes.push_back(&parallelogram);
-    
-    // Демонстрация работы с объектами
-    for (auto shape : shapes) {
-        demonstrateLateBinding(shape);
-        cout << "-----------------\n";
-    }
-    
-    // Демонстрация различных вариантов доступа
-    SquareBase* sq = &square;
-    cout << "Square side: " << sq->getSide() << "\n";
-    // sq->x = 10; // Ошибка: x защищенный член
-    
+    // Пример использования классов
+    vect v1(3);
+    v1[0] = 1.0;
+    v1[1] = 2.0;
+    v1[2] = 3.0;
+
+    vect v2(3);
+    v2[0] = 4.0;
+    v2[1] = 5.0;
+    v2[2] = 6.0;
+
+    vect v3 = v1 + v2;
+    v3.print();
+
+    matr m1(2, 2);
+    m1(0, 0) = 1.0;
+    m1(0, 1) = 2.0;
+    m1(1, 0) = 3.0;
+    m1(1, 1) = 4.0;
+
+    matr m2(2, 2);
+    m2(0, 0) = 5.0;
+    m2(0, 1) = 6.0;
+    m2(1, 0) = 7.0;
+    m2(1, 1) = 8.0;
+
+    matr m3 = m1 + m2;
+    m3.print();
+
     return 0;
 }
